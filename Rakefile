@@ -17,8 +17,8 @@ Jeweler::Tasks.new do |gem|
   gem.name = "tafunc"
   gem.homepage = "http://github.com/mephistobooks/tafunc"
   gem.license = "MIT"
-  gem.summary = %Q{TODO: one-line summary of your gem}
-  gem.description = %Q{TODO: longer description of your gem}
+  gem.summary = %Q{TAFunc: another talib_ruby wrapper and extensions}
+  gem.description = %Q{Useful methods are added to TaLib, TaLib::Function, and TaLib::TAFunc.}
   gem.email = "martin.route66.blues+github@gmail.com"
   gem.authors = ["YAMAMOTO, Masayuki"]
   # dependencies defined in Gemfile
