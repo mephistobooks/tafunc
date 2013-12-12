@@ -1,9 +1,8 @@
 require 'helper'
 
 class TestTafunc < Test::Unit::TestCase
-#  should "probably rename this file and start testing for real" do
-#    flunk "hey buddy, you should probably rename this file and start testing for real"
-#  end
+
+  #
   #
   #
   def setup
@@ -15,7 +14,7 @@ class TestTafunc < Test::Unit::TestCase
   end
 
   def test_new
-    
+
     #
     assert_nothing_raised { taf = TaLib::TAFunc.new( "MACD" ) }
 
@@ -23,12 +22,18 @@ class TestTafunc < Test::Unit::TestCase
     assert_nothing_raised { taf = TaLib::TAFunc.new( :MACD ) }
 
     #
-    assert_raise( RuntimeError ) { taf = TaLib::TAFunc.new( "" ) }
+    e = assert_raise( RuntimeError ) { taf = TaLib::TAFunc.new( "" ) }
+
+    #
+    e = assert_raise( RuntimeError ) { taf = TaLib::TAFunc.new( "nonamef" ) }
+    assert_equal( false, e.message.match(/^no such function: nonamef/i).nil? )
 
 
   end
 
-
+  #
+  #
+  #
   def test_struct_ta_types
     exp = [
       :TA_RealRange,
@@ -47,10 +52,14 @@ class TestTafunc < Test::Unit::TestCase
 
   end
 
-  def test_talib
-    
+  #
+  #
+  #
+  def test_talib_module
+
     assert_equal( Module, TaLib.class )
 
+    #
     exp = {
       0=>:TA_Input_Price,
       1=>:TA_Input_Real,
@@ -58,6 +67,7 @@ class TestTafunc < Test::Unit::TestCase
     }
     assert_equal( exp, TaLib.input_types )
 
+    #
     exp = {
       0=>:TA_OptInput_RealRange,
       1=>:TA_OptInput_RealList,
@@ -66,11 +76,26 @@ class TestTafunc < Test::Unit::TestCase
     }
     assert_equal( exp, TaLib.optinput_types )
 
+    #
     exp = {
       0=>:TA_Output_Real,
       1=>:TA_Output_Integer,
     }
     assert_equal( exp, TaLib.output_types )
+
+    #
+    exp = {
+      0=>:TA_MAType_SMA,
+      1=>:TA_MAType_EMA,
+      2=>:TA_MAType_WMA,
+      3=>:TA_MAType_DEMA,
+      4=>:TA_MAType_TEMA,
+      5=>:TA_MAType_TRIMA,
+      6=>:TA_MAType_KAMA,
+      7=>:TA_MAType_MAMA,
+      8=>:TA_MAType_T3,
+    }
+    assert_equal( exp, TaLib.ma_types )
 
   end
 
@@ -119,6 +144,22 @@ class TestTafunc < Test::Unit::TestCase
     #              ret.values.flatten.size )
     assert_equal( TaLib::Function.functions.keys, TaLib::Function.groups )
 
+    #
+    ret = TaLib::Function.function_exists?( :MACD )
+    assert_equal( true, ret )
+
+    ret = TaLib::Function.function_exists?( :macd )
+    assert_equal( true, ret )
+
+    ret = TaLib::Function.function_exists?( "MACD" )
+    assert_equal( true, ret )
+
+    ret = TaLib::Function.function_exists?( "macd" )
+    assert_equal( true, ret )
+
+    ret = TaLib::Function.function_exists?( "MACDfooobarrr" )
+    assert_equal( false, ret )
+
   end
 
 
@@ -141,7 +182,7 @@ class TestTafunc < Test::Unit::TestCase
     ret.size.times do |i|
       exp_param_name = [ "optInFastPeriod",
                          "optInSlowPeriod",
-                         "optInSignalPeriod" ][i]
+                         "optInSignalPeriod", ][i]
       assert_equal( Struct::TA_OptInputParameterInfo, ret[i].class )
       assert_equal( exp_param_name, ret[i].param_name )
     end
@@ -163,8 +204,45 @@ class TestTafunc < Test::Unit::TestCase
 
   end
 
+  def test_tafunc_new
+
+    assert_nothing_raised { macd = TaLib::TAFunc.new( :MA ) }
+    assert_equal( "MA", TaLib::TAFunc.new("ma").name )
+
+
+  end
+
   def test_tafunc
-    ret = @testee
+
+    #
+    ret = TaLib::TAFunc.instance_methods.grep(/^param_/)
+    assert_equal([:param_in, :param_opt, :param_out], ret)
+
+    # in case that the function is MACD.
+    exp = [
+      :param_in_real,
+      :param_in_real=,
+      :param_opt_in_fast_period,
+      :param_opt_in_fast_period=,
+      :param_opt_in_slow_period,
+      :param_opt_in_slow_period=,
+      :param_opt_in_signal_period,
+      :param_opt_in_signal_period=,
+      :param_out_macd,
+      :param_out_macd=,
+      :param_out_macd_signal,
+      :param_out_macd_signal=,
+      :param_out_macd_hist,
+      :param_out_macd_hist=,
+    ]
+    ret = @testee.singleton_methods.grep(/^param_/)
+    assert_equal(exp, ret)
+
+    #
+    assert_equal( nil, @testee.param_in_real )
+    assert_equal( [1,2,3], @testee.param_in_real=[1,2,3] )
+    assert_equal( [1,2,3], @testee.param_in_real )
+    assert_equal( :TA_Input_Real, @testee.param_in_real(:type) )
 
   end
 

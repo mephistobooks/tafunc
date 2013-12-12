@@ -1,20 +1,20 @@
-= TAFunc  - another talib_ruby wrapper and extension README.
+# TAFunc  - another talib_ruby wrapper and extension README.
 
 TAFunc provides utility extensions for talib_ruby.
 
-== Requirements
-* TA-Lib library itself
-* installed talib_ruby which is modified for TaLib::Function.{groups, functions} (see my github repository)
-*
+## Requirements
+* [TA-Lib library]() itself
+* ``talib_ruby`` which is modified for TaLib::Function.{groups, functions} (see my github repository)
+* Ruby 2.0 (I tested in this environment).
 
-== Description
-
-
-== Usage
+## Description
 
 
+## Usage
 
-== Contributing to TAFunc
+
+
+## Contributing to TAFunc
  
 * Check out the latest master to make sure the feature hasn't been implemented or the bug hasn't been fixed yet.
 * Check out the issue tracker to make sure someone already hasn't requested it and/or contributed it.
@@ -24,8 +24,8 @@ TAFunc provides utility extensions for talib_ruby.
 * Make sure to add tests for it. This is important so I don't break it in a future version unintentionally.
 * Please try not to mess with the Rakefile, version, or history. If you want to have your own version, or is otherwise necessary, that is fine, but please isolate to its own commit so I can cherry-pick around it.
 
-== Copyright
+## Copyright
 
-Copyright (c) 2013 YAMAMOTO, Masayuki. See LICENSE.txt for
+Copyright (c) 2013 YAMAMOTO, Masayuki. License is MIT. See LICENSE.txt for
 further details.
 

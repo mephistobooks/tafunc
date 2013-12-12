@@ -86,31 +86,29 @@ class TaLib::Function
 
     ##
     # :method: ifs_ins
-    # Helper method of in() and ins()
+    # Helper method of Function#{in,ins}.
     # ==== Args
-    #
+    # none.
     # ==== Return
-    #
-    
+    # input interface of current object.
+
     ##
     # :method: ifs_opts
-    # Helper method of Function#opt and Function#opts
-    #
+    # Helper method of Function#{opt,opts}
     # ==== Args
-    #
+    # none.
     # ==== Return
-    #
-    #
-    
+    # option interface of current object.
+
     ##
     # :method: ifs_outs
-    # Helper method of Function#out and Function#outs
+    # Helper method of Function#{out,outs}
     # ==== Args
-    #
+    # none.
     # ==== Return
+    # output interface of current object.
     #
-    #
-    
+
     ##
 
     define_method("ifs_#{funcif}s") {
@@ -122,9 +120,9 @@ class TaLib::Function
   # :method: ifs_all
   # list all of ifs_ins, ifs_outs, ifs_opts.
   # ==== Args
-  #
+  # none.
   # ==== Return
-  #
+  # Array of current object (an instance of Function) interfaces.
 
   ##
 
@@ -138,6 +136,26 @@ class TaLib::Function
 
   # Function#groups and Function#functions are defined in talib.c.
 
+  # find func from hash.
+  # ==== Args
+  # func :: name of function which you want to search from the table.
+  # ==== Return
+  # String :: function name found.
+  # nil :: no such function.
+  def self.function_find( func )
+    return (self.functions.values.flatten.grep(/^#{func}$/i).first)
+  end
+
+  # check if a function is existed.
+  # ==== Args
+  # func :: name of function which you want to search from the table.
+  # ==== Return
+  # true :: there exists
+  # false :: no such function.
+  def self.function_exists?( func )
+    return not(self.function_find(func).nil?)
+  end
+
 end
 
 
@@ -147,7 +165,7 @@ end
 class TaLib::TAFunc < TaLib::Function
 
   PPREFIX = "param_"
-  tmph = {
+  table_for_param = {
     "in"  => ["int","real","price"],
     "opt" => ["int","real"],
     "out" => ["int","real"],
@@ -155,13 +173,14 @@ class TaLib::TAFunc < TaLib::Function
 
   private
   # defines parameter methods of each Function, dynamically.
+  # (used only by #initialize)
   # ==== Args
-  #
+  # none.
   # ==== Return
-  #
+  # none.
   def __define_ifmethods
 
-    # in
+    # for input parameter of the current TA function.
     self.ifs_ins.each {|e|
       case
         when TaLib.input_types[e.type].to_s =~ /Price/
@@ -173,30 +192,32 @@ class TaLib::TAFunc < TaLib::Function
           # TAFunc by ``self.singleton_class.instance_eval``.
           #
           self.singleton_class.instance_eval do
-            define_method( PPREFIX+e.param_name.underscore ) {|val|
-              eval("in_price( ifs_ins.index(e), val )")
+            define_method( PPREFIX+e.param_name.underscore ) {|wh=:val|
+              idx = ifs_ins.index(e)
+              (@param_in[idx].nil?)? nil : @param_in[idx][wh]
             }
-            define_method( PPREFIX+e.param_name.underscore+'=' ) {|val|
-              eval("#{PPREFIX+e.param_name.underscore}(val)")
+            define_method( PPREFIX+e.param_name.underscore+'=' ) {|v|
+              eval("in_price( ifs_ins.index(e), v )")
             }
           end
         when TaLib.input_types[e.type].to_s =~ /Integer/
           self.singleton_class.instance_eval do
-            define_method( PPREFIX+e.param_name.underscore ) {|val|
-              eval("in_int( ifs_ins.index(e), val )")
+            define_method( PPREFIX+e.param_name.underscore ) {|wh=:val|
+              idx = ifs_ins.index(e)
+              (@param_in[idx].nil?)? nil : @param_in[idx][wh]
             }
-            define_method( PPREFIX+e.param_name.underscore+'=' ) {|val|
-              eval("#{PPREFIX+e.param_name.underscore}(val)")
+            define_method( PPREFIX+e.param_name.underscore+'=' ) {|v|
+              eval("in_int( ifs_ins.index(e), v )")
             }
           end
         when TaLib.input_types[e.type].to_s =~ /Real/
           self.singleton_class.instance_eval do
-            define_method( PPREFIX+e.param_name.underscore ) {|val|
-              #
-              eval("in_real( ifs_ins.index(e), val )")
+            define_method( PPREFIX+e.param_name.underscore ) {|wh=:val|
+              idx = ifs_ins.index(e)
+              (@param_in[idx].nil?)? nil : @param_in[idx][wh]
             }
-            define_method( PPREFIX+e.param_name.underscore+'=' ) {|val|
-              eval("#{PPREFIX+e.param_name.underscore}(val)")
+            define_method( PPREFIX+e.param_name.underscore+'=' ) {|v|
+              eval("in_real( ifs_ins.index(e), v )")
             }
           end
         else
@@ -204,25 +225,28 @@ class TaLib::TAFunc < TaLib::Function
       end
     }
 
-    # opt
+    # for option parameter of current TA function.
     self.ifs_opts.each {|e|
       case
         when TaLib.optinput_types[e.type].to_s =~ /Integer/
           self.singleton_class.instance_eval do
-            define_method( PPREFIX+e.param_name.underscore ) {|val|
-              eval("opt_int( ifs_opts.index(e), val )")
+            define_method( PPREFIX+e.param_name.underscore ) {|wh=:val|
+              idx = ifs_opts.index(e)
+              (@param_opt[idx].nil?)? nil : @param_opt[idx][wh]
             }
-            define_method( PPREFIX+e.param_name.underscore+'=' ) {|val|
-              eval("#{PPREFIX+e.param_name.underscore}(val)")
+            define_method( PPREFIX+e.param_name.underscore+'=' ) {|v|
+              eval("opt_int( ifs_opts.index(e), v )")
+              #eval("#{PPREFIX+e.param_name.underscore}(val)")
             }
           end
         when TaLib.optinput_types[e.type].to_s =~ /Real/
           self.singleton_class.instance_eval do
-            define_method( PPREFIX+e.param_name.underscore ) {|val|
-              eval("opt_real( ifs_opts.index(e), val )")
+            define_method( PPREFIX+e.param_name.underscore ) {|wh=:val|
+              idx = ifs_opts.index(e)
+              (@param_opt[idx].nil?)? nil : @param_opt[idx][wh]
             }
-            define_method( PPREFIX+e.param_name.underscore+'=' ) {|val|
-              eval("#{PPREFIX+e.param_name.underscore}(val)")
+            define_method( PPREFIX+e.param_name.underscore+'=' ) {|v|
+              eval("opt_real( ifs_opts.index(e), v )")
             }
           end
         else
@@ -230,26 +254,29 @@ class TaLib::TAFunc < TaLib::Function
       end
     }
 
-    # out
+    # for output parameter of current TA function.
     self.ifs_outs.each {|e|
       case
         when TaLib.output_types[e.type].to_s =~ /Integer/
           #self.class.class_eval {
           self.singleton_class.instance_eval do
-            define_method( PPREFIX+e.param_name.underscore ) {|val|
-              eval("out_int( ifs_outs.index(e), val )")
+            define_method( PPREFIX+e.param_name.underscore ) {|wh=:val|
+              idx = ifs_outs.index(e)
+              (@param_out[idx].nil?)? nil : @param_out[idx][wh]
             }
-            define_method( PPREFIX+e.param_name.underscore+'=' ) {|val|
-              eval("#{PPREFIX+e.param_name.underscore}(val)")
+            define_method( PPREFIX+e.param_name.underscore+'=' ) {|v|
+              eval("out_int( ifs_outs.index(e), v )")
+              #eval("#{PPREFIX+e.param_name.underscore}(val)")
             }
           end
         when TaLib.output_types[e.type].to_s =~ /Real/
           self.singleton_class.instance_eval do
-            define_method( PPREFIX+e.param_name.underscore ) {|val|
-              eval("out_real( ifs_outs.index(e), val )")
+            define_method( PPREFIX+e.param_name.underscore ) {|wh=:val|
+              idx = ifs_outs.index(e)
+              (@param_out[idx].nil?)? nil : @param_out[idx][wh]
             }
-            define_method( PPREFIX+e.param_name.underscore+'=' ) {|val|
-              eval("#{PPREFIX+e.param_name.underscore}(val)")
+            define_method( PPREFIX+e.param_name.underscore+'=' ) {|v|
+              eval("out_real( ifs_outs.index(e), v )")
             }
           end
         else
@@ -259,30 +286,45 @@ class TaLib::TAFunc < TaLib::Function
   end
 
   public
-  def initialize( func )
+  def initialize( func, arr_in: [], arr_out: [] )
     func = func.to_s if func.class == Symbol
-    if func.class != String
-      raise "Type error: #{func}! Should be in String."
+    func_renamed = self.class.function_find( func )
+    case
+      when func.class != String
+        raise "Type error of function name: #{func}!"+
+              " Should be in String."
+      when TaLib::Function.function_exists?( func ) == false
+        raise "No such function: #{func}!"+
+              " Choose one of"+
+              " #{TaLib::Function.functions.values.flatten.join(' ')}."
     end
 
-    super( func )
-
     #
+    super( func_renamed )
+
+    # for recording parameter setting.
     @param_in  = {}
     @param_opt = {}
     @param_out = {}
 
     # define method for the function: func.
     __define_ifmethods
+
+    # this must be after __define_ifmethods because we want to use
+    # ifmethods in yield block.
+    #
+    yield self if block_given?
+
   end
 
+  public
   # current parameter values of each object of Function.
   # ==== See Also
   # * ifs_all/ifs_ins/ifs_opts/ifs_outs.
-  # * TAFunc.#hints
+  # * TaLib::TAFunc.#hints
   attr_reader :param_in, :param_opt, :param_out
 
-
+  private
   #alias :in_int_orig :in_int
   #alias :in_real_orig :in_real
   #alias :in_price_orig :in_price
@@ -293,8 +335,8 @@ class TaLib::TAFunc < TaLib::Function
   #alias :out_int_orig :out_int
   #alias :out_real_orig :out_real
 
-  tmph.keys.each{|k|
-    tmph[k].each{|v|
+  table_for_param.keys.each{|k|
+    table_for_param[k].each{|v|
       unless self.method_defined?( "#{k}_#{v}_orig".to_sym )
         then alias_method( "#{k}_#{v}_orig".to_sym, "#{k}_#{v}".to_sym )
         else raise "Error in re-defining at #{self.to_s}: #{k}_#{v}!"
@@ -317,11 +359,18 @@ class TaLib::TAFunc < TaLib::Function
   end
 
   public
-  # wrapper of {in,opt,out}_int,
+  ##
+  # wrap the original {in,opt,out}_{int,real,price} to record values.
+  # For example,
+  #   def in_real( idx, val )
+  #     __in_param_record( idx, val )
+  #     in_real_orig(idx, val)
+  #   end
   #
   #
-  tmph.keys.each{|k|
-    tmph[k].each{|v|
+  ##
+  table_for_param.keys.each{|k|
+    table_for_param[k].each{|v|
       define_method( k+"_"+v ) {|idx,val|
         # attention: val must be lvalue when out_*.
         eval("__param_#{k}_record( idx, val )")
@@ -329,38 +378,6 @@ class TaLib::TAFunc < TaLib::Function
       }
     }
   }
-
-  #def in_int( idx, val )
-  #  __in_param_record( idx, val )
-  #  in_int_orig(idx, val)
-  #end
-  #def in_real( idx, val )
-  #  #__in_param_record( idx, val, TaLib::TA_Input_Real )
-  #  __in_param_record( idx, val )
-  #  in_real_orig(idx, val)
-  #end
-  #def in_price( idx, val )
-  #  __in_param_record( idx, val )
-  #  in_price_orig(idx, val)
-  #end
-
-  #def opt_int( idx, val )
-  #  __opt_param_record( idx, val )
-  #  opt_int_orig(idx, val)
-  #end
-  #def opt_real( idx, val )
-  #  __opt_param_record( idx, val )
-  #  opt_real_orig(idx, val)
-  #end
-
-  #def out_int( idx, val )
-  #  __out_param_record( idx, val )
-  #  out_int_orig(idx, val)
-  #end
-  #def out_real( idx, val )
-  #  __out_param_record( idx, val )
-  #  out_real_orig(idx, val)
-  #end
 
   # Wrapper of the class method: hints.
   # ==== See Also
@@ -370,7 +387,7 @@ class TaLib::TAFunc < TaLib::Function
   end
 
   # self.hints provides the information about TA-Lib function.
-  # The information of them are extracted from talib itself.
+  # The information of them are extracted from talib library itself.
   # ==== ATTENTION
   # library (talib_ruby) must support TaLib::Function.{groups,functions}.
   # ==== Args
