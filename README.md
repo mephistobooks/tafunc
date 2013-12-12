@@ -1,8 +1,20 @@
-= tafunc
+= TAFunc  - another talib_ruby wrapper and extension README.
 
-Description goes here.
+TAFunc provides utility extensions for talib_ruby.
 
-== Contributing to tafunc
+== Requirements
+* TA-Lib library itself
+* installed talib_ruby which is modified for TaLib::Function.{groups, functions} (see my github repository)
+*
+
+== Description
+
+
+== Usage
+
+
+
+== Contributing to TAFunc
  
 * Check out the latest master to make sure the feature hasn't been implemented or the bug hasn't been fixed yet.
 * Check out the issue tracker to make sure someone already hasn't requested it and/or contributed it.
