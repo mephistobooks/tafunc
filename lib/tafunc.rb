@@ -317,7 +317,7 @@ class TaLib::TAFunc < TaLib::Function
   end
 
   public
-  #
+  # wrapper of {in,opt,out}_int,
   #
   #
   tmph.keys.each{|k|
