@@ -15,7 +15,8 @@ a = Array.new
           ma.param_out_real = b             # setup output parameter
         end
 
-        l.call( 0, 9 )
+        #l.call( 0, 9 )
+        l.call( 0..9 )
 
         #
         p "k=#{k+2}"
