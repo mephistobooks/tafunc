@@ -72,6 +72,31 @@ end
 #
 class TaLib::Function
 
+  # class methods Function.groups and Function.functions are defined
+  # in talib.c of talib_ruby.
+
+  # find func from hash.
+  # ==== Args
+  # func :: name of function which you want to search from the table.
+  # ==== Return
+  # String :: function name found.
+  # nil :: no such function.
+  def self.function_find( func )
+    return (self.functions.values.flatten.grep(/^#{func}$/i).first)
+  end
+
+  # check if a function is existed.
+  # ==== Args
+  # func :: name of function which you want to search from the table.
+  # ==== Return
+  # true :: there exists
+  # false :: no such function.
+  def self.function_exists?( func )
+    return not(self.function_find(func).nil?)
+  end
+
+  ####
+  
   # TA Function name.
   attr_reader :name if defined?( name ).nil?  # @name
 
@@ -134,27 +159,7 @@ class TaLib::Function
 
   ####
 
-  # Function#groups and Function#functions are defined in talib.c.
-
-  # find func from hash.
-  # ==== Args
-  # func :: name of function which you want to search from the table.
-  # ==== Return
-  # String :: function name found.
-  # nil :: no such function.
-  def self.function_find( func )
-    return (self.functions.values.flatten.grep(/^#{func}$/i).first)
-  end
-
-  # check if a function is existed.
-  # ==== Args
-  # func :: name of function which you want to search from the table.
-  # ==== Return
-  # true :: there exists
-  # false :: no such function.
-  def self.function_exists?( func )
-    return not(self.function_find(func).nil?)
-  end
+  # Function#call(idx1,idx2) is defined.
 
 end
 
@@ -286,13 +291,17 @@ class TaLib::TAFunc < TaLib::Function
   end
 
   public
+  #
+  # ==== Args
+  # func :: The function name.
+  #
   def initialize( func, arr_in: [], arr_out: [] )
     func = func.to_s if func.class == Symbol
     func_renamed = self.class.function_find( func )
     case
       when func.class != String
-        raise "Type error of function name: #{func}!"+
-              " Should be in String."
+        raise "Type error for the function name: #{func.class}(#{func})!"+
+              " This should be in String."
       when TaLib::Function.function_exists?( func ) == false
         raise "No such function: #{func}!"+
               " Choose one of"+
@@ -378,6 +387,48 @@ class TaLib::TAFunc < TaLib::Function
       }
     }
   }
+
+  ####
+  public
+  # wrap Function#call
+  # ==== Args
+  # *r :: range of input array in several ways:
+  #       no args: from pram_in_*
+  #       m, n: direct indexes
+  #       m..n: range object
+  #       array: array
+  # ==== Return
+  # due to the function.
+  def call( *r )
+    m, n = nil, nil
+    case
+      when r.size == 0  # no args.
+        puts "no args."
+        raise "No setting of param_in_* for #{name}!" if @param_in[0].nil?
+        m, n = 0, @param_in[0][:val].size-1
+      when r.first.class == Range  # Range is given.
+        puts "range."
+        m, n = r.first.first, r.first.last
+      when r.size == 2  # 2 indexes are given.
+        puts "couple of index."
+        m, n = r.first, r.last
+      when r.first.class == Array   # Array is given.
+        puts "array."
+        self.param_in_real = r.first if @param_in[0].nil?
+        m, n = 0, r.first.size-1
+      else
+        raise "Strange args: #{r}! Should be in one of Nothing,"+
+              " two indexes, Array or Range."
+
+    end
+
+    #puts "idx: #{m}, #{n}"
+    #
+    super( m, n )
+
+  end
+
+  ####
 
   # Wrapper of the class method: hints.
   # ==== See Also

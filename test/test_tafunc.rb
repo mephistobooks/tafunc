@@ -1,6 +1,6 @@
 require 'helper'
 
-class TestTafunc < Test::Unit::TestCase
+class TestTAFunc < Test::Unit::TestCase
 
   #
   #
@@ -16,10 +16,14 @@ class TestTafunc < Test::Unit::TestCase
   def test_new
 
     #
-    assert_nothing_raised { taf = TaLib::TAFunc.new( "MACD" ) }
+    assert_nothing_raised { TaLib::TAFunc.new( "MACD" ) }
 
     #
-    assert_nothing_raised { taf = TaLib::TAFunc.new( :MACD ) }
+    assert_nothing_raised { TaLib::TAFunc.new( :MACD ) }
+
+    #
+    e = assert_raise( RuntimeError ) { TaLib::TAFunc.new( [:MACD] ) }
+    assert_equal( 0, e.message =~ /Type error for the function name:/ )
 
     #
     e = assert_raise( RuntimeError ) { taf = TaLib::TAFunc.new( "" ) }
@@ -243,6 +247,46 @@ class TestTafunc < Test::Unit::TestCase
     assert_equal( [1,2,3], @testee.param_in_real=[1,2,3] )
     assert_equal( [1,2,3], @testee.param_in_real )
     assert_equal( :TA_Input_Real, @testee.param_in_real(:type) )
+
+  end
+
+  def test_tafunc_call
+
+    #
+    e = assert_raise( RuntimeError ){ @testee.call }
+    assert_equal( 0, e.message =~ /No setting of param_in_/ )
+
+    #
+    tmp = [ 1.0, 2.0, 3.0, 4.0, 5.0 ]
+    @testee.param_in_real = tmp
+    #@testee.param_opt_in_fast_period = 3
+    assert_equal( tmp, @testee.param_in_real )
+    e = assert_raise( RuntimeError ){ @testee.call }
+    assert_equal( 0, e.message =~ /unsuccess return code TA_CallFunc/ )
+
+    #
+    @testee.param_out_macd        = Array.new(@testee.param_in_real.size)
+    @testee.param_out_macd_signal = Array.new(@testee.param_in_real.size)
+    @testee.param_out_macd_hist   = Array.new(@testee.param_in_real.size)
+    assert_nothing_raised{ @testee.call }
+    assert_nothing_raised{ @testee.call(1,8) }
+    assert_nothing_raised{ @testee.call(1..8) }
+    assert_nothing_raised{ @testee.call(1...8) }
+    assert_nothing_raised{ @testee.call(tmp) }
+
+  end
+
+  # case without param_in_real.
+  def test_tafunc_call_1
+
+    #
+    tmp = [ 1.0, 2.0, 3.0, 4.0, 5.0 ]
+
+    #
+    @testee.param_out_macd        = Array.new(tmp)
+    @testee.param_out_macd_signal = Array.new(tmp)
+    @testee.param_out_macd_hist   = Array.new(tmp)
+    assert_nothing_raised{ @testee.call(tmp) }
 
   end
 
