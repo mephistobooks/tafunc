@@ -206,8 +206,12 @@ class TaLib::TAFunc < TaLib::Function
   # none.
   # ==== Return
   # none.
+  # ==== TODO
+  # * hove to change ( wh = :val ) interface for getter?
+  #   (maybe confused to setter.)
   def __define_ifmethods
 
+    # accessor generator
     # for input parameter of the current TA function.
     self.ifs_ins.each {|e|
       case
@@ -239,20 +243,32 @@ class TaLib::TAFunc < TaLib::Function
             }
           end
         when TaLib.input_types[e.type].to_s =~ /Real/
-          self.singleton_class.instance_eval do
-            define_method( PPREFIX+e.param_name.underscore ) {|wh=:val|
+          self.define_singleton_method( PPREFIX+
+                                        e.param_name.underscore ) {|wh=:val|
               idx = ifs_ins.index(e)
               (@param_in[idx].nil?)? nil : @param_in[idx][wh]
-            }
-            define_method( PPREFIX+e.param_name.underscore+'=' ) {|v|
+          }
+          self.define_singleton_method( PPREFIX+
+                                        e.param_name.underscore+
+                                        '=' ) {|v|
               eval("in_real( ifs_ins.index(e), v )")
-            }
-          end
+          }
+
+          #self.singleton_class.instance_eval do
+          #  define_method( PPREFIX+e.param_name.underscore ) {|wh=:val|
+          #    idx = ifs_ins.index(e)
+          #    (@param_in[idx].nil?)? nil : @param_in[idx][wh]
+          #  }
+          #  define_method( PPREFIX+e.param_name.underscore+'=' ) {|v|
+          #    eval("in_real( ifs_ins.index(e), v )")
+          #  }
+          #end
         else
           raise "Initialization error #{TaLib.input_types[e.type]} #{e}!"
       end
     }
 
+    # accessor generator
     # for option parameter of current TA function.
     self.ifs_opts.each {|e|
       case
@@ -282,6 +298,7 @@ class TaLib::TAFunc < TaLib::Function
       end
     }
 
+    # accessor generator
     # for output parameter of current TA function.
     self.ifs_outs.each {|e|
       case
@@ -466,6 +483,15 @@ class TaLib::TAFunc < TaLib::Function
     end
 
     puts "idx: #{m}, #{n}"
+
+    case
+      when m > n
+        raise "calculation range(#{m},#{n}) is currently not supported!"
+      when n >= self.param_in_real.size
+        raise "#{n} is too big!"+
+          " less than or equal to #{self.param_in_real.size-1}"
+      end
+
     #
     super( m, n )
 

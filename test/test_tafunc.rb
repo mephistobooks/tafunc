@@ -320,9 +320,13 @@ class TestTAFunc < Test::Unit::TestCase
     @testee.param_out_macd_signal = Array.new(@testee.param_in_real.size)
     @testee.param_out_macd_hist   = Array.new(@testee.param_in_real.size)
     assert_nothing_raised{ @testee.call }
-    assert_nothing_raised{ @testee.call(1,8) }
-    assert_nothing_raised{ @testee.call(1..8) }
-    assert_nothing_raised{ @testee.call(1...8) }
+    assert_nothing_raised{ @testee.call(0,4) }
+    assert_nothing_raised{ @testee.call(1..3) }
+    assert_nothing_raised{ @testee.call(1...3) }
+    assert_raise( RuntimeError ){ @testee.call(1,8) }
+    assert_raise( RuntimeError ){ @testee.call(1..8) }
+    assert_raise( RuntimeError ){ @testee.call(1...8) }
+    assert_raise( RuntimeError ){ @testee.call(4,0) }
     assert_nothing_raised{ @testee.call(tmp) }
 
   end
