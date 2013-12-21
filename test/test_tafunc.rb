@@ -6,8 +6,13 @@ class TestTAFunc < Test::Unit::TestCase
   #
   #
   def setup
-    @test_func = :MACD
+    
+    # TA-Lib's MACD has a bug when signal_period = 1.
+    # so DO NOT USE.
+    #@test_func = :MACD
+    @test_func = :MACDEXT
     @testee = TaLib::TAFunc.new( @test_func )
+
   end
 
   def teardown
@@ -147,8 +152,14 @@ class TestTAFunc < Test::Unit::TestCase
     #assert_equal( exp.values.inject(0){|r,i| r + i},
     #              ret.values.flatten.size )
     assert_equal( TaLib::Function.functions.keys, TaLib::Function.groups )
+  end
 
-    #
+  # test for function_{find,exists?}, group_of_function.
+  def test_function_function
+    # function_find, exists?.
+    ret = TaLib::Function.function_find( :macd )
+    assert_equal( "MACD", ret )
+
     ret = TaLib::Function.function_exists?( :MACD )
     assert_equal( true, ret )
 
@@ -163,6 +174,10 @@ class TestTAFunc < Test::Unit::TestCase
 
     ret = TaLib::Function.function_exists?( "MACDfooobarrr" )
     assert_equal( false, ret )
+
+    #
+    ret = TaLib::Function.group_of_function( :MACD )
+    assert_equal( "Momentum Indicators", ret )
 
   end
 
@@ -182,11 +197,14 @@ class TestTAFunc < Test::Unit::TestCase
 
     #
     ret = @testee.ifs_opts
-    assert_equal( 3, ret.size )
+    assert_equal( 6, ret.size )
     ret.size.times do |i|
       exp_param_name = [ "optInFastPeriod",
+                         "optInFastMAType",
                          "optInSlowPeriod",
-                         "optInSignalPeriod", ][i]
+                         "optInSlowMAType",
+                         "optInSignalPeriod",
+                         "optInSignalMAType", ][i]
       assert_equal( Struct::TA_OptInputParameterInfo, ret[i].class )
       assert_equal( exp_param_name, ret[i].param_name )
     end
@@ -204,7 +222,7 @@ class TestTAFunc < Test::Unit::TestCase
 
     #
     ret = @testee.ifs_all
-    assert_equal( 7, ret.size )
+    assert_equal( 10, ret.size )
 
   end
 
@@ -219,7 +237,7 @@ class TestTAFunc < Test::Unit::TestCase
   def test_tafunc
 
     #
-    ret = TaLib::TAFunc.instance_methods.grep(/^param_/)
+    ret = TaLib::TAFunc.instance_methods.grep(/^param_(in|opt|out)$/)
     assert_equal([:param_in, :param_opt, :param_out], ret)
 
     # in case that the function is MACD.
@@ -228,10 +246,16 @@ class TestTAFunc < Test::Unit::TestCase
       :param_in_real=,
       :param_opt_in_fast_period,
       :param_opt_in_fast_period=,
+      :param_opt_in_fast_ma_type,
+      :param_opt_in_fast_ma_type=,
       :param_opt_in_slow_period,
       :param_opt_in_slow_period=,
+      :param_opt_in_slow_ma_type,
+      :param_opt_in_slow_ma_type=,
       :param_opt_in_signal_period,
       :param_opt_in_signal_period=,
+      :param_opt_in_signal_ma_type,
+      :param_opt_in_signal_ma_type=,
       :param_out_macd,
       :param_out_macd=,
       :param_out_macd_signal,
@@ -241,12 +265,39 @@ class TestTAFunc < Test::Unit::TestCase
     ]
     ret = @testee.singleton_methods.grep(/^param_/)
     assert_equal(exp, ret)
+    ret = @testee.param_methods
+    assert_equal(exp, ret)
+
+    ret = @testee.param_methods( :in )
+    assert_equal( [:param_in_real, :param_in_real=], ret )
+
+    ret = @testee.param_attr( :in )
+    assert_equal( [:param_in_real], ret )
+
+    ret = @testee.param_attr( :opt )
+    assert_equal( [:param_opt_in_fast_period,
+                   :param_opt_in_fast_ma_type,
+                   :param_opt_in_slow_period,
+                   :param_opt_in_slow_ma_type,
+                   :param_opt_in_signal_period,
+                   :param_opt_in_signal_ma_type,
+    ], ret )
+
+    #ret = @testee.param_methods( :in, :type )
+    #assert_equal([:param_in_real], ret)
+
 
     #
     assert_equal( nil, @testee.param_in_real )
     assert_equal( [1,2,3], @testee.param_in_real=[1,2,3] )
     assert_equal( [1,2,3], @testee.param_in_real )
     assert_equal( :TA_Input_Real, @testee.param_in_real(:type) )
+
+    h   = {}
+    ret = @testee.param_out_setting( h )
+    assert_equal( {:param_out_macd=>[nil, nil, nil],
+                  :param_out_macd_signal=>[nil, nil, nil],
+                   :param_out_macd_hist=>[nil, nil, nil]}, h )
 
   end
 
@@ -289,5 +340,102 @@ class TestTAFunc < Test::Unit::TestCase
     assert_nothing_raised{ @testee.call(tmp) }
 
   end
+
+  # MACD test with TA_MACDEXT.
+  #
+  def test_tafunc_macd
+
+    #
+    tmp = [ 1.0, 2.0, 3.0, 4.0, 5.0 ]
+    @testee.param_in_real        = tmp
+    @testee.param_opt_in_fast_period   = 2  # MA of tmp by 2 periods.
+    @testee.param_opt_in_slow_period   = 3  # MA of tmp by 3 periods.
+    @testee.param_opt_in_signal_period = 1  # MA of MACD by 1 period. (Signal=MACD)
+    [ :param_opt_in_fast_ma_type=,
+      :param_opt_in_slow_ma_type=,
+      :param_opt_in_signal_ma_type=, ].each {|param|
+      @testee.send( param, TaLib::TA_MAType_EMA )
+    }
+
+    # .
+    output_size = tmp.size + [ @testee.param_opt_in_fast_period,
+                               @testee.param_opt_in_slow_period,
+                               @testee.param_opt_in_signal_period ].max
+    #
+    @testee.param_out_macd        = Array.new( output_size )
+    @testee.param_out_macd_signal = Array.new( output_size )
+    @testee.param_out_macd_hist   = Array.new( output_size )
+
+    #
+    tmp = [nil, nil, nil, nil, nil, nil, nil, nil]
+    @testee.param_out_macd = tmp.dup
+    @testee.param_out_macd_signal = tmp.dup
+    @testee.param_out_macd_hist = tmp.dup
+
+    assert_equal( tmp, @testee.param_out_macd )
+
+    #
+    ret_call = nil
+    assert_nothing_raised{ ret_call = @testee.call(0, 4) }
+    
+    # start_idx, num_elements.
+    assert_equal( [ 2, 3 ], ret_call )
+
+    #
+    assert_equal( [0.5, 0.5, 0.5],
+                  @testee.param_out_macd[ 0..(ret_call[1]-1)] )
+    assert_equal( [0.5 ],
+                  @testee.param_out_macd_signal[1..1] )
+    assert_equal( [ ],
+                  @testee.param_out_macd_hist[1..0] )
+  end
+
+  def test_tafunc_macd_1
+
+    #
+    tmp = [ 1.0, 2.0, 3.0, 4.0, 5.0, 0.0, 0.0 ]
+    @testee.param_in_real        = tmp
+    @testee.param_opt_in_fast_period   = 2  # MA of tmp by 2 periods.
+    @testee.param_opt_in_slow_period   = 3  # MA of tmp by 3 periods.
+    @testee.param_opt_in_signal_period = 1  # MA of MACD by 1 period. (Signal=MACD)
+    [ :param_opt_in_fast_ma_type=,
+      :param_opt_in_slow_ma_type=,
+      :param_opt_in_signal_ma_type=, ].each {|param|
+      @testee.send( param, TaLib::TA_MAType_EMA )
+    }
+
+    #
+    output_size = tmp.size
+
+    #
+    @testee.param_out_macd        = Array.new( output_size )
+    @testee.param_out_macd_signal = Array.new( output_size )
+    @testee.param_out_macd_hist   = Array.new( output_size )
+
+    #
+    tmp = [nil, nil, nil, nil, nil, nil, nil]
+    assert_equal( tmp, @testee.param_out_macd )
+
+    #
+    run_start_idx = 0
+    run_end_idx   = 6
+
+    ret_call = nil
+    assert_nothing_raised{
+      ret_call = @testee.call(run_start_idx, run_end_idx) }
+    
+    # start_idx, num_elements.
+    assert_equal( [ 2, 5 ], ret_call )
+
+    #
+    assert_equal( [0.5, 0.5, 0.5, -0.5, -0.5],
+                 @testee.param_out_macd[ 0..(ret_call[1]-1)] )
+    assert_equal( [0.5, 0.5, 0.5, -0.5, -0.5],
+                  @testee.param_out_macd_signal[ 0..(ret_call[1]-1)] )
+    assert_equal( [0.0, 0.0, 0.0, 0.0, 0.0 ],
+                 @testee.param_out_macd_hist[ 0..(ret_call[1]-1)] )
+
+  end
+
 
 end

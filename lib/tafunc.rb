@@ -6,6 +6,8 @@ require "talib_ruby"
 require 'active_support/core_ext'
 require 'pp'
 
+#require "tafunc_array"
+
 
 # TaLib_ruby structures.
 #
@@ -75,14 +77,29 @@ class TaLib::Function
   # class methods Function.groups and Function.functions are defined
   # in talib.c of talib_ruby.
 
+  private
+  def self.__group_of_function( func )
+    func = func.to_s if func.class != String
+    ret = { :group => nil, :function => nil, }
+
+    self.functions.each do |k,v|
+      if tmp = v.grep(/^#{func}$/i).first
+        then ret[:group] = k; ret[:function] = tmp; break
+      end
+    end
+    return ret
+  end
+
+  public
   # find func from hash.
   # ==== Args
   # func :: name of function which you want to search from the table.
+  #         (Symbol can match with String. So you can use also Symbol)
   # ==== Return
   # String :: function name found.
   # nil :: no such function.
   def self.function_find( func )
-    return (self.functions.values.flatten.grep(/^#{func}$/i).first)
+    return __group_of_function( func )[:function]
   end
 
   # check if a function is existed.
@@ -94,6 +111,12 @@ class TaLib::Function
   def self.function_exists?( func )
     return not(self.function_find(func).nil?)
   end
+
+  public
+  def self.group_of_function( func )
+    return __group_of_function( func )[:group]
+  end
+
 
   ####
   
@@ -289,6 +312,19 @@ class TaLib::TAFunc < TaLib::Function
       end
     }
   end
+  
+  public
+  # get defined singleton methods of param_{in,opt,out}_*.
+  #
+  #
+  def param_methods( kind = "(in|opt|out)" )
+    kind = kind.to_s if kind.class == Symbol
+    self.singleton_methods.grep(/^param_#{kind}_.*$/)
+  end
+  def param_attr( kind = "(in|opt|out)" )
+    self.param_methods( kind ).grep(/[^=]$/)
+  end
+
 
   public
   #
@@ -312,11 +348,16 @@ class TaLib::TAFunc < TaLib::Function
     super( func_renamed )
 
     # for recording parameter setting.
+    # { idx => { :val => some_val,
+    #            :type => type_name, }
+    #
     @param_in  = {}
     @param_opt = {}
     @param_out = {}
 
     # define method for the function: func.
+    # for example, param_in_real, param_opt_in_fast_period methods, etc.
+    #
     __define_ifmethods
 
     # this must be after __define_ifmethods because we want to use
@@ -348,23 +389,25 @@ class TaLib::TAFunc < TaLib::Function
     table_for_param[k].each{|v|
       unless self.method_defined?( "#{k}_#{v}_orig".to_sym )
         then alias_method( "#{k}_#{v}_orig".to_sym, "#{k}_#{v}".to_sym )
-        else raise "Error in re-defining at #{self.to_s}: #{k}_#{v}!"
+        else raise "Error in re-defining at #{self.to_s}:"+
+          " #{k}_#{v}_orig already exists!"
       end
     }
   }
 
   private
   def __param_in_record( idx, val )
-    @param_in[idx] = { val: val,
-      type: TaLib.input_types[ifs_ins[idx].type] }
+    @param_in[idx] = {
+      val: val,
+      type: TaLib.input_types[ifs_ins[idx].type], }
   end
   def __param_opt_record( idx, val )
     @param_opt[idx] = { val: val,
-      type: TaLib.optinput_types[ifs_opts[idx].type] }
+      type: TaLib.optinput_types[ifs_opts[idx].type], }
   end
   def __param_out_record( idx, val )
     @param_out[idx] = { val: val,
-      type: TaLib.output_types[ifs_outs[idx].type] }
+      type: TaLib.output_types[ifs_outs[idx].type], }
   end
 
   public
@@ -422,7 +465,7 @@ class TaLib::TAFunc < TaLib::Function
 
     end
 
-    #puts "idx: #{m}, #{n}"
+    puts "idx: #{m}, #{n}"
     #
     super( m, n )
 
@@ -456,11 +499,13 @@ class TaLib::TAFunc < TaLib::Function
     case
       when group == "all"
         group_list = self.groups
-      when group.class == Array
-        group_list = group
       when group.class == String
         group_list = [group]
+      when group.class == Array
+        group_list = group
       else
+        raise "Type error #{group.class} for group!"+
+          " Please specify group in String or Array of String."
     end
 
     func_list = nil
@@ -530,7 +575,28 @@ class TaLib::TAFunc < TaLib::Function
 
   end
 
+  #
+  # ==== Requirements
+  # all in-parameters have already been set.
+  # ==== Args
+  #
+  # ==== Return
+  #
+  def param_out_setting( h )
+
+    tmp = self.param_attr( :out )
+
+    tmp.each{|a|
+      h[a] = Array.new( self.param_in_real.size )
+      self.send( (a.to_s+'=').to_sym, h[a] )
+    }
+
+    return h
+  end
+
+
 end
+
 
 
 #### endof filename: tafunc.rb
