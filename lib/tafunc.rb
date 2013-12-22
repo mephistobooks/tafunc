@@ -216,53 +216,60 @@ class TaLib::TAFunc < TaLib::Function
     self.ifs_ins.each {|e|
       case
         when TaLib.input_types[e.type].to_s =~ /Price/
+          #
           # This is NG: self.class.class_eval { ... }.
           # Because same instance methods are re-difined on TAFunc when
           # we do TAFunc.new multiple times.
           #
           # So, we have to create singleton-methods on each object of
-          # TAFunc by ``self.singleton_class.instance_eval``.
+          # TAFunc by ~~``self.singleton_class.instance_eval``~~.
           #
-          self.singleton_class.instance_eval do
-            define_method( PPREFIX+e.param_name.underscore ) {|wh=:val|
+          #
+          define_singleton_method( PPREFIX+
+                                   e.param_name.underscore ) {|wh=:val|
               idx = ifs_ins.index(e)
+              unless wh =~ /^(val)|(type)$/ # :sym matches "sym".
+                raise "#{__method__} is getter and cannot recognaize"+
+                      " the argument: #{wh}"
+              end
+
               (@param_in[idx].nil?)? nil : @param_in[idx][wh]
             }
-            define_method( PPREFIX+e.param_name.underscore+'=' ) {|v|
+          define_singleton_method( PPREFIX+
+                                   e.param_name.underscore+'=') {|v|
               eval("in_price( ifs_ins.index(e), v )")
             }
-          end
         when TaLib.input_types[e.type].to_s =~ /Integer/
-          self.singleton_class.instance_eval do
-            define_method( PPREFIX+e.param_name.underscore ) {|wh=:val|
+          define_singleton_method( PPREFIX+
+                                   e.param_name.underscore ) {|wh=:val|
               idx = ifs_ins.index(e)
+              unless wh =~ /^(val)|(type)$/ # :sym matches "sym".
+                raise "#{__method__} is getter and cannot recognaize"+
+                      " the argument: #{wh}"
+              end
+
               (@param_in[idx].nil?)? nil : @param_in[idx][wh]
             }
-            define_method( PPREFIX+e.param_name.underscore+'=' ) {|v|
+          define_singleton_method( PPREFIX+
+                                   e.param_name.underscore+'=' ) {|v|
               eval("in_int( ifs_ins.index(e), v )")
             }
-          end
         when TaLib.input_types[e.type].to_s =~ /Real/
-          self.define_singleton_method( PPREFIX+
+          define_singleton_method( PPREFIX+
                                         e.param_name.underscore ) {|wh=:val|
               idx = ifs_ins.index(e)
+              unless wh =~ /^(val)|(type)$/ # :sym matches "sym".
+                raise "#{__method__} is getter and cannot recognaize"+
+                      " the argument: #{wh}"
+              end
+
               (@param_in[idx].nil?)? nil : @param_in[idx][wh]
           }
-          self.define_singleton_method( PPREFIX+
-                                        e.param_name.underscore+
-                                        '=' ) {|v|
+          define_singleton_method( PPREFIX+
+                                   e.param_name.underscore + '=' ) {|v|
               eval("in_real( ifs_ins.index(e), v )")
           }
 
-          #self.singleton_class.instance_eval do
-          #  define_method( PPREFIX+e.param_name.underscore ) {|wh=:val|
-          #    idx = ifs_ins.index(e)
-          #    (@param_in[idx].nil?)? nil : @param_in[idx][wh]
-          #  }
-          #  define_method( PPREFIX+e.param_name.underscore+'=' ) {|v|
-          #    eval("in_real( ifs_ins.index(e), v )")
-          #  }
-          #end
         else
           raise "Initialization error #{TaLib.input_types[e.type]} #{e}!"
       end
@@ -273,26 +280,35 @@ class TaLib::TAFunc < TaLib::Function
     self.ifs_opts.each {|e|
       case
         when TaLib.optinput_types[e.type].to_s =~ /Integer/
-          self.singleton_class.instance_eval do
-            define_method( PPREFIX+e.param_name.underscore ) {|wh=:val|
+          define_singleton_method( PPREFIX+
+                                   e.param_name.underscore ) {|wh=:val|
               idx = ifs_opts.index(e)
+              unless wh =~ /^(val)|(type)$/ # :sym matches "sym".
+                raise "#{__method__} is getter and cannot recognaize"+
+                      " the argument: #{wh}"
+              end
+
               (@param_opt[idx].nil?)? nil : @param_opt[idx][wh]
             }
-            define_method( PPREFIX+e.param_name.underscore+'=' ) {|v|
+          define_singleton_method( PPREFIX+
+                                   e.param_name.underscore + '=' ) {|v|
               eval("opt_int( ifs_opts.index(e), v )")
-              #eval("#{PPREFIX+e.param_name.underscore}(val)")
             }
-          end
         when TaLib.optinput_types[e.type].to_s =~ /Real/
-          self.singleton_class.instance_eval do
-            define_method( PPREFIX+e.param_name.underscore ) {|wh=:val|
+          define_singleton_method( PPREFIX+
+                                   e.param_name.underscore ) {|wh=:val|
               idx = ifs_opts.index(e)
+              unless wh =~ /^(val)|(type)$/ # :sym matches "sym".
+                raise "#{__method__} is getter and cannot recognaize"+
+                      " the argument: #{wh}"
+              end
+
               (@param_opt[idx].nil?)? nil : @param_opt[idx][wh]
             }
-            define_method( PPREFIX+e.param_name.underscore+'=' ) {|v|
+          define_singleton_method( PPREFIX+
+                                   e.param_name.underscore + '=' ) {|v|
               eval("opt_real( ifs_opts.index(e), v )")
             }
-          end
         else
           raise "Initialization error #{TaLib.optinput_types[e.type]} #{e}!"
       end
@@ -303,27 +319,35 @@ class TaLib::TAFunc < TaLib::Function
     self.ifs_outs.each {|e|
       case
         when TaLib.output_types[e.type].to_s =~ /Integer/
-          #self.class.class_eval {
-          self.singleton_class.instance_eval do
-            define_method( PPREFIX+e.param_name.underscore ) {|wh=:val|
+          define_singleton_method( PPREFIX+
+                                   e.param_name.underscore ) {|wh=:val|
               idx = ifs_outs.index(e)
+            unless wh =~ /^(val)|(type)$/ # :sym matches "sym".
+              raise "#{__method__} is getter and cannot recognaize"+
+                    " the argument: #{wh}"
+            end
+
               (@param_out[idx].nil?)? nil : @param_out[idx][wh]
             }
-            define_method( PPREFIX+e.param_name.underscore+'=' ) {|v|
+          define_singleton_method( PPREFIX+
+                                   e.param_name.underscore + '=' ) {|v|
               eval("out_int( ifs_outs.index(e), v )")
-              #eval("#{PPREFIX+e.param_name.underscore}(val)")
             }
-          end
         when TaLib.output_types[e.type].to_s =~ /Real/
-          self.singleton_class.instance_eval do
-            define_method( PPREFIX+e.param_name.underscore ) {|wh=:val|
+          define_singleton_method( PPREFIX+
+                                   e.param_name.underscore ) {|wh=:val|
               idx = ifs_outs.index(e)
+            unless wh =~ /^(val)|(type)$/ # :sym matches "sym".
+              raise "#{__method__} is getter and cannot recognaize"+
+                    " the argument: #{wh}"
+            end
+
               (@param_out[idx].nil?)? nil : @param_out[idx][wh]
             }
-            define_method( PPREFIX+e.param_name.underscore+'=' ) {|v|
+          define_singleton_method( PPREFIX+
+                                   e.param_name.underscore+'=' ) {|v|
               eval("out_real( ifs_outs.index(e), v )")
             }
-          end
         else
           raise "Initialization error #{TaLib.output_types[e.type]} #{e}!"
       end
