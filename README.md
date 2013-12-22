@@ -3,9 +3,11 @@
 TAFunc provides utility extensions for talib_ruby.
 
 ## Requirements
-* [TA-Lib library]() itself. On Mac, just ``[sudo] brew install ta-lib``.
-* ``talib_ruby`` gem which is modified ver. 1.0.5 for TaLib::Function.{groups, functions} (see my github repository: https://github.com/mephistobooks/talib-ruby/tree/patch-1)
-* Ruby 2.0 (I tested in this environment).
+* [TA-Lib library](http://ta-lib.org) itself. On Mac, just do ``[sudo] brew install ta-lib``
+* activesupport/core_ext (just for underscore method)
+* ``talib_ruby`` gem which is modified ver. of 1.0.5 for TaLib::Function.{groups, functions} (see my github repository: https://github.com/mephistobooks/talib-ruby/tree/patch-1217a)
+* Ruby 2.0 (I tested in this environment)
+*
 
 ## Installation
 
@@ -16,18 +18,30 @@ According to ``ta_abstract.h`` of TA-Lib, there are some ways of wrapping librar
 
 On the contrary, the approach of TAFunc is more dynamic and meta-programming. No xml is needed. No static code generation.
 
+
 ## Usage
 
 ```
 ma = TaLib::TAFunc.new( :MA ) do |taf|
-    taf.param_in_real = ARRAY_OF_HISTORICAL_DATA
+  taf.param_in_real = ARRAY_OF_HISTORICAL_DATA
+  taf.param_opt_in_period = 2
 end
 
 ma.call
+
 ```
 
 ```
-TaLib::TAFunc.new( :MACD ).hints
+result = [1.0, 2.0, 3.0, 4.0].tafunc( :MA ) do |taf|
+  taf.param_in_real = ARRAY_OF_HISTORICAL_DATA
+  taf.param_opt_in_time_period = 2
+end
+```
+
+
+```
+TaLib::TAFunc.new( :MACDEXT ).param_attr
+TaLib::TAFunc.new( :MACDEXT ).hints
 TaLib::TAFunc.groups
 TaLib::TAFunc.functions
 ```
