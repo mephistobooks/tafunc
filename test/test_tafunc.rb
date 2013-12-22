@@ -51,6 +51,7 @@ class TestTAFunc < Test::Unit::TestCase
     assert_raise(RuntimeError){ @testee.param_in_real( tmp ) }
 
     #
+    #pp @testee.singleton_methods
     @testee.param_in_real = tmp
     assert_equal( tmp, @testee.param_in_real )
 
