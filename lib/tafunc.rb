@@ -9,27 +9,28 @@ require 'pp'
 #require "tafunc_array"
 
 
-# TaLib_ruby structures.
+# extension for taLib_ruby structures.
 #
 #
 class Struct
   
   # get structs of TA_*.
-  #
-  #
+  # ==== Returns
+  # array of TA_* structs.
   def self.ta_types; self.constants.grep( /TA_.*/ ); end
 
 end
 
 
-# TaLib_ruby main module.
-# class Function is defined in this.
+# talib_ruby main module.
+# class Function is defined in this module.
 #
 module TaLib
 
+  # get value-table for TA_Input_* of TA-Lib.
+  # ==== Return
   # Table of Input types: { val => :sym }.
   # TA_Input_{Integer,Real,Price}
-  #
   #
   def self.input_types
     ret = {}
@@ -37,9 +38,10 @@ module TaLib
     return ret
   end
 
+  # get value-type table for TA_OptInput_* of TA-Lib.
+  # ==== Return
   # Table of optinput types: { val => :sym }.
   # TA_OptInput_{Real,Integer}{Range,List}
-  #
   #
   def self.optinput_types
     ret = {}
@@ -47,9 +49,10 @@ module TaLib
     return ret
   end
 
+  # get value-type table for TA_Output_* of TA-Lib.
+  # ==== Return
   # Table of output types: { val => :sym }.
   # TA_Output_{Integer,Real}
-  #
   #
   def self.output_types
     ret = {}
@@ -57,8 +60,9 @@ module TaLib
     return ret
   end
 
+  # get value-type table for TA_MAType_* of TA-Lib
+  # ==== Return
   # Table of MA types: { val => :sym }.
-  #
   #
   def self.ma_types
     ret = {}
@@ -77,6 +81,10 @@ class TaLib::Function
   # class methods Function.groups and Function.functions are defined
   # in talib.c of talib_ruby.
 
+  # :nodoc:
+  # ==== Return
+  # { :group => group_in_which_function_exists,
+  #   :function => name_of_function }
   private
   def self.__group_of_function( func )
     func = func.to_s if func.class != String
@@ -113,6 +121,8 @@ class TaLib::Function
   end
 
   public
+  # get the group of specified function.
+  #
   def self.group_of_function( func )
     return __group_of_function( func )[:group]
   end
@@ -138,7 +148,7 @@ class TaLib::Function
     # ==== Args
     # none.
     # ==== Return
-    # input interface of current object.
+    # input interface (parameters) of current Function object.
 
     ##
     # :method: ifs_opts
@@ -146,7 +156,7 @@ class TaLib::Function
     # ==== Args
     # none.
     # ==== Return
-    # option interface of current object.
+    # option interface (parameters) of current Function object.
 
     ##
     # :method: ifs_outs
@@ -154,7 +164,7 @@ class TaLib::Function
     # ==== Args
     # none.
     # ==== Return
-    # output interface of current object.
+    # output interface (parameters) of current Function object.
     #
 
     ##
@@ -192,15 +202,21 @@ end
 #
 class TaLib::TAFunc < TaLib::Function
 
+  # :nodoc:
   PPREFIX = "param_"
   table_for_param = {
     "in"  => ["int","real","price"],
     "opt" => ["int","real"],
     "out" => ["int","real"],
   }
+  table_for_param_regex = {
+    "in"  => ["Price","Integer","Real"],
+    "opt" => ["Integer","Real"],
+    "out" => ["Integer","Real"],
+  }
 
   private
-  # defines parameter methods of each Function, dynamically.
+  # defines interface methods (parameters) of each Function, dynamically.
   # (used only by #initialize)
   # ==== Args
   # none.
