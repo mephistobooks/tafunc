@@ -13,7 +13,7 @@ require 'pp'
 #
 #
 class Struct
-  
+
   # get structs of TA_*.
   # ==== Returns
   # array of TA_* structs.
@@ -218,12 +218,11 @@ class TaLib::TAFunc < TaLib::Function
     "opt" => ["Integer","Real"],
     "out" => ["Integer","Real"],
   }
-  #table_etype_attr = {
   def etype_attr
     {
-    "in" => { 0 => "price",
-              1 => "real",
-              2 => "int", },
+    "in"  => { 0 => "price",
+               1 => "real",
+               2 => "int", },
     "opt" => { 0 => "real",
                1 => "real",
                2 => "int",
@@ -234,8 +233,17 @@ class TaLib::TAFunc < TaLib::Function
   end
 
   private
-  # defines interface methods (parameters) of each Function, dynamically.
+  # generate interface methods (parameters) of each Function, dynamically.
   # (used only by #initialize)
+  #
+  # generated methods are param_in_*, param_opt_*, param_out_*. These are
+  # due to each Function's specification.
+  #
+  # ex. for MACDEXT, param_in_real (getter), and param_in_real= (setter)
+  # are generated as input parameter. This is singleton methods.
+  #
+  # To see the generated methods, use #param_methods, #param_attr or
+  # something.
   # ==== Args
   # none.
   # ==== Return
@@ -245,100 +253,144 @@ class TaLib::TAFunc < TaLib::Function
   #   (maybe confused to setter.)
   def __define_ifmethods
 
-    # accessor generator
-    # for input parameter of the current TA function.
-    self.ifs_ins.each {|e|
-      case
-        when TaLib.input_types[e.type].to_s =~ /(Price)|(Integer)|(Real)/
-          #
-          # This is NG: self.class.class_eval { ... }.
-          # Because same instance methods are re-difined on TAFunc when
-          # we do TAFunc.new multiple times.
-          #
-          # So, we have to create singleton-methods on each object of
-          # TAFunc by ~~``self.singleton_class.instance_eval``~~.
-          #
-          #
-          idx = ifs_ins.index(e)
-          typ = etype_attr['in'][e.type]
-
-          define_singleton_method( PPREFIX+
-                                   e.param_name.underscore ) {|wh=:val|
-            #idx = ifs_ins.index(e)
-            unless wh =~ /^(val)|(type)$/ # :sym matches "sym".
-              raise "#{__method__} is getter and cannot recognaize"+
-                    " the argument: #{wh}"
-            end
-
-            (@param_in[idx].nil?)? nil : @param_in[idx][wh]
-          }
-          define_singleton_method( PPREFIX+
-                                   e.param_name.underscore+'=') {|v|
-            #eval("in_price( ifs_ins.index(e), v )")
-            #eval("in_#{etype_attr['in'][e.type]}( ifs_ins.index(e), v )")
-            #puts "#{__method__}: #{idx}, #{v}"
-            #puts "raw method: in_#{etype_attr['in'][e.type]}"
-
-            send("in_"+typ, idx, v )
-          }
-        else
-          raise "Initialization error #{TaLib.input_types[e.type]} #{e}!"
-      end
+    #
+    types = {
+      :ifs_ins  => :input_types,
+      :ifs_opts => :optinput_types,
+      :ifs_outs => :output_types,
+    }
+    types_dir = {
+      :ifs_ins  => 'in',
+      :ifs_opts => 'opt',
+      :ifs_outs => 'out',
     }
 
-    # accessor generator
-    # for option parameter of current TA function.
-    self.ifs_opts.each {|e|
-      case
-        when TaLib.optinput_types[e.type].to_s =~ /(Integer)|(Real)/
-          idx = ifs_opts.index(e)
-          typ = etype_attr['opt'][e.type]
+    # param_accessors generator.
+    #
+    #
+    types.each do |ifs_method, type_method|
+      send(ifs_method).each do |e|
+        case
+          when TaLib.send(type_method)[e.type].to_s =~ /(Price)|(Integer)|(Real)/
+            idx = send(ifs_method).index(e)
+            typ = etype_attr[types_dir[ifs_method]][e.type]
 
-          define_singleton_method( PPREFIX+
-                                   e.param_name.underscore ) {|wh=:val|
-            unless wh =~ /^(val)|(type)$/ # :sym matches "sym".
-              raise "#{__method__} is getter and cannot recognaize"+
-                    " the argument: #{wh}"
-            end
+            define_singleton_method( PPREFIX+
+                                     e.param_name.underscore ) {|wh=:val|
+              unless wh =~ /^(val)|(type)$/ # :sym matches "sym".
+                raise "#{__method__} is getter and cannot recognaize"+
+                      " the argument: #{wh}"
+              end
 
-            (@param_opt[idx].nil?)? nil : @param_opt[idx][wh]
-          }
-          define_singleton_method( PPREFIX+
-                                   e.param_name.underscore + '=' ) {|v|
-              #eval("opt_int( ifs_opts.index(e), v )")
-              send( "opt_"+typ, idx, v )
-          }
-        else
-          raise "Initialization error #{TaLib.optinput_types[e.type]} #{e}!"
+              #
+              (send("param_"+types_dir[ifs_method])[idx].nil?)? nil : \
+                send("param_"+types_dir[ifs_method])[idx][wh]
+            }
+            define_singleton_method( PPREFIX+
+                                     e.param_name.underscore+'=') {|v|
+              send( types_dir[ifs_method]+"_"+typ, idx, v )
+            }
+          else
+            raise "Initialization error #{TaLib.input_types[e.type]} #{e}!"
+        end
       end
-    }
 
-    # accessor generator
-    # for output parameter of current TA function.
-    self.ifs_outs.each {|e|
-      case
-        when TaLib.output_types[e.type].to_s =~ /(Integer)|(Real)/
-          idx = ifs_outs.index(e)
-          typ = etype_attr['out'][e.type]
+    end
 
-          define_singleton_method( PPREFIX+
-                                   e.param_name.underscore ) {|wh=:val|
-            unless wh =~ /^(val)|(type)$/ # :sym matches "sym".
-              raise "#{__method__} is getter and cannot recognaize"+
-                    " the argument: #{wh}"
-            end
-
-            (@param_out[idx].nil?)? nil : @param_out[idx][wh]
-          }
-          define_singleton_method( PPREFIX+
-                                   e.param_name.underscore + '=' ) {|v|
-            #eval("out_int( ifs_outs.index(e), v )")
-            send( "out_"+typ, idx, v )
-          }
-        else
-          raise "Initialization error #{TaLib.output_types[e.type]} #{e}!"
-      end
-    }
+#    # accessor generator
+#    # for input parameter of the current TA function.
+#    self.ifs_ins.each {|e|
+#      case
+#        when TaLib.input_types[e.type].to_s =~ /(Price)|(Integer)|(Real)/
+#          #
+#          # This is NG: self.class.class_eval { ... }.
+#          # Because same instance methods are re-difined on TAFunc when
+#          # we do TAFunc.new multiple times.
+#          #
+#          # So, we have to create singleton-methods on each object of
+#          # TAFunc by ~~``self.singleton_class.instance_eval``~~.
+#          #
+#          #
+#          idx = ifs_ins.index(e)
+#          typ = etype_attr['in'][e.type]
+#
+#          define_singleton_method( PPREFIX+
+#                                   e.param_name.underscore ) {|wh=:val|
+#            #idx = ifs_ins.index(e)
+#            unless wh =~ /^(val)|(type)$/ # :sym matches "sym".
+#              raise "#{__method__} is getter and cannot recognaize"+
+#                    " the argument: #{wh}"
+#            end
+#
+#            (@param_in[idx].nil?)? nil : @param_in[idx][wh]
+#          }
+#          define_singleton_method( PPREFIX+
+#                                   e.param_name.underscore+'=') {|v|
+#            #eval("in_price( ifs_ins.index(e), v )")
+#            #eval("in_#{etype_attr['in'][e.type]}( ifs_ins.index(e), v )")
+#            #puts "#{__method__}: #{idx}, #{v}"
+#            #puts "raw method: in_#{etype_attr['in'][e.type]}"
+#
+#            send("in_"+typ, idx, v )
+#          }
+#        else
+#          raise "Initialization error #{TaLib.input_types[e.type]} #{e}!"
+#      end
+#    }
+#
+#    # accessor generator
+#    # for option parameter of current TA function.
+#    self.ifs_opts.each {|e|
+#      case
+#        when TaLib.optinput_types[e.type].to_s =~ /(Integer)|(Real)/
+#          idx = ifs_opts.index(e)
+#          typ = etype_attr['opt'][e.type]
+#
+#          define_singleton_method( PPREFIX+
+#                                   e.param_name.underscore ) {|wh=:val|
+#            unless wh =~ /^(val)|(type)$/ # :sym matches "sym".
+#              raise "#{__method__} is getter and cannot recognaize"+
+#                    " the argument: #{wh}"
+#            end
+#
+#            (@param_opt[idx].nil?)? nil : @param_opt[idx][wh]
+#          }
+#          define_singleton_method( PPREFIX+
+#                                   e.param_name.underscore + '=' ) {|v|
+#              #eval("opt_int( ifs_opts.index(e), v )")
+#              send( "opt_"+typ, idx, v )
+#          }
+#        else
+#          raise "Initialization error #{TaLib.optinput_types[e.type]} #{e}!"
+#      end
+#    }
+#
+#    # accessor generator
+#    # for output parameter of current TA function.
+#    self.ifs_outs.each {|e|
+#      case
+#        when TaLib.output_types[e.type].to_s =~ /(Integer)|(Real)/
+#          idx = ifs_outs.index(e)
+#          typ = etype_attr['out'][e.type]
+#
+#          define_singleton_method( PPREFIX+
+#                                   e.param_name.underscore ) {|wh=:val|
+#            unless wh =~ /^(val)|(type)$/ # :sym matches "sym".
+#              raise "#{__method__} is getter and cannot recognaize"+
+#                    " the argument: #{wh}"
+#            end
+#
+#            (@param_out[idx].nil?)? nil : @param_out[idx][wh]
+#          }
+#          define_singleton_method( PPREFIX+
+#                                   e.param_name.underscore + '=' ) {|v|
+#            #eval("out_int( ifs_outs.index(e), v )")
+#            send( "out_"+typ, idx, v )
+#          }
+#        else
+#          raise "Initialization error #{TaLib.output_types[e.type]} #{e}!"
+#      end
+#    }
   end
 
   public
@@ -347,7 +399,7 @@ class TaLib::TAFunc < TaLib::Function
   #
   def param_methods( kind = "(in|opt|out)" )
     kind = kind.to_s if kind.class == Symbol
-    self.singleton_methods.grep(/^param_#{kind}_.*$/)
+    self.singleton_methods.grep(/^param_#{kind}_.+$/)
   end
   def param_attr( kind = "(in|opt|out)" )
     self.param_methods( kind ).grep(/[^=]$/)
@@ -389,7 +441,7 @@ class TaLib::TAFunc < TaLib::Function
     __define_ifmethods
 
     # this must be after __define_ifmethods because we want to use
-    # ifmethods in yield block.
+    # generated interface methods in yield block.
     #
     yield self if block_given?
 
@@ -397,8 +449,9 @@ class TaLib::TAFunc < TaLib::Function
 
   public
   # current parameter values of each object of Function.
+  # for @param_in, @param_opt, @param_out.
   # ==== See Also
-  # * ifs_all/ifs_ins/ifs_opts/ifs_outs.
+  # * TaLib::Function#ifs_all/ifs_ins/ifs_opts/ifs_outs.
   # * TaLib::TAFunc.#hints
   attr_reader :param_in, :param_opt, :param_out
 
@@ -461,7 +514,7 @@ class TaLib::TAFunc < TaLib::Function
 
   ####
   public
-  # wrap Function#call
+  # wrap Function#call to accept various kinds of args.
   # ==== Args
   # *r :: range of input array in several ways:
   #       no args: from pram_in_*
@@ -478,13 +531,13 @@ class TaLib::TAFunc < TaLib::Function
       when r.size == 0  # no args.
         raise "No setting of param_in_* for #{name}!" if @param_in[0].nil?
         m, n = 0, @param_in[0][:val].size-1
-      when r.first.class == Range  # Range is given.
+      when r.first.class == Range   # Range is given.
         m, n = r.first.first, r.first.last
-      when r.size == 2  # 2 indexes are given.
-        puts "couple of index."
+      when r.size == 2              # 2 indexes are given.
+        #puts "couple of index."
         m, n = r.first, r.last
       when r.first.class == Array   # Array is given.
-        puts "array."
+        #puts "array."
         self.param_in_real = r.first if @param_in[0].nil?
         m, n = 0, r.first.size-1
       else
@@ -518,9 +571,10 @@ class TaLib::TAFunc < TaLib::Function
   # h :: output hash to be set.
   # force_mode: :: force to create new array for output (default: false)
   # ==== Return
-  # h :: .
+  # h :: { :output_parameter1 => [ nil, nil, ... ],
+  #        :output_parameter2 => [ nil, nil, ... ], }
   # ==== TODO
-  #
+  # * currently tested only MA, MACDEXT.
   #
   def param_out_setting( h = {}, force_mode: false )
 
@@ -555,7 +609,7 @@ class TaLib::TAFunc < TaLib::Function
   # ==== ATTENTION
   # library (talib_ruby) must support TaLib::Function.{groups,functions}.
   # ==== Args
-  # verbose: :: parameter name only when false, or entire structs.
+  # verbose: :: parameter name only when false, or entire structs when true.
   # group: :: group name of functions.
   # function: :: name of function.
   # ==== Description
