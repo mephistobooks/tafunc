@@ -19,10 +19,11 @@ class Array
   def tafunc( func )
 
     #
-    ret = {}
+    #ret = {}
+    ret = nil
 
     #
-    tmp = TaLib::TAFunc.new( func ) do |taf|
+    ret = TaLib::TAFunc.new( func ) do |taf|
 
       raise "Conflicts: # of inputs!" if taf.param_attr( :in ).size != 1
 
@@ -30,15 +31,12 @@ class Array
       taf.param_in_real = self
 
       # outputs.
-      taf.param_out_setting( ret )
+      taf.param_out_setting
 
       # options.
       yield(taf) if block_given?
 
     end.call
-
-    # add other call results.
-    ret.merge!( { :start_idx => tmp[0], :num_elements => tmp[1], } )
 
     #
     return ret

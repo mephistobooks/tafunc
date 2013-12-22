@@ -234,11 +234,11 @@ class TaLib::TAFunc < TaLib::Function
               end
 
               (@param_in[idx].nil?)? nil : @param_in[idx][wh]
-            }
+          }
           define_singleton_method( PPREFIX+
                                    e.param_name.underscore+'=') {|v|
               eval("in_price( ifs_ins.index(e), v )")
-            }
+          }
         when TaLib.input_types[e.type].to_s =~ /Integer/
           define_singleton_method( PPREFIX+
                                    e.param_name.underscore ) {|wh=:val|
@@ -249,14 +249,14 @@ class TaLib::TAFunc < TaLib::Function
               end
 
               (@param_in[idx].nil?)? nil : @param_in[idx][wh]
-            }
+          }
           define_singleton_method( PPREFIX+
                                    e.param_name.underscore+'=' ) {|v|
               eval("in_int( ifs_ins.index(e), v )")
-            }
+          }
         when TaLib.input_types[e.type].to_s =~ /Real/
           define_singleton_method( PPREFIX+
-                                        e.param_name.underscore ) {|wh=:val|
+                                   e.param_name.underscore ) {|wh=:val|
               idx = ifs_ins.index(e)
               unless wh =~ /^(val)|(type)$/ # :sym matches "sym".
                 raise "#{__method__} is getter and cannot recognaize"+
@@ -289,11 +289,11 @@ class TaLib::TAFunc < TaLib::Function
               end
 
               (@param_opt[idx].nil?)? nil : @param_opt[idx][wh]
-            }
+          }
           define_singleton_method( PPREFIX+
                                    e.param_name.underscore + '=' ) {|v|
               eval("opt_int( ifs_opts.index(e), v )")
-            }
+          }
         when TaLib.optinput_types[e.type].to_s =~ /Real/
           define_singleton_method( PPREFIX+
                                    e.param_name.underscore ) {|wh=:val|
@@ -304,11 +304,11 @@ class TaLib::TAFunc < TaLib::Function
               end
 
               (@param_opt[idx].nil?)? nil : @param_opt[idx][wh]
-            }
+          }
           define_singleton_method( PPREFIX+
                                    e.param_name.underscore + '=' ) {|v|
               eval("opt_real( ifs_opts.index(e), v )")
-            }
+          }
         else
           raise "Initialization error #{TaLib.optinput_types[e.type]} #{e}!"
       end
@@ -321,39 +321,39 @@ class TaLib::TAFunc < TaLib::Function
         when TaLib.output_types[e.type].to_s =~ /Integer/
           define_singleton_method( PPREFIX+
                                    e.param_name.underscore ) {|wh=:val|
-              idx = ifs_outs.index(e)
+            idx = ifs_outs.index(e)
             unless wh =~ /^(val)|(type)$/ # :sym matches "sym".
               raise "#{__method__} is getter and cannot recognaize"+
                     " the argument: #{wh}"
             end
 
-              (@param_out[idx].nil?)? nil : @param_out[idx][wh]
-            }
+            (@param_out[idx].nil?)? nil : @param_out[idx][wh]
+          }
           define_singleton_method( PPREFIX+
                                    e.param_name.underscore + '=' ) {|v|
               eval("out_int( ifs_outs.index(e), v )")
-            }
+          }
         when TaLib.output_types[e.type].to_s =~ /Real/
           define_singleton_method( PPREFIX+
                                    e.param_name.underscore ) {|wh=:val|
-              idx = ifs_outs.index(e)
+            idx = ifs_outs.index(e)
             unless wh =~ /^(val)|(type)$/ # :sym matches "sym".
               raise "#{__method__} is getter and cannot recognaize"+
                     " the argument: #{wh}"
             end
 
-              (@param_out[idx].nil?)? nil : @param_out[idx][wh]
-            }
+            (@param_out[idx].nil?)? nil : @param_out[idx][wh]
+          }
           define_singleton_method( PPREFIX+
                                    e.param_name.underscore+'=' ) {|v|
-              eval("out_real( ifs_outs.index(e), v )")
-            }
+            eval("out_real( ifs_outs.index(e), v )")
+          }
         else
           raise "Initialization error #{TaLib.output_types[e.type]} #{e}!"
       end
     }
   end
-  
+
   public
   # get defined singleton methods of param_{in,opt,out}_*.
   #
@@ -485,13 +485,13 @@ class TaLib::TAFunc < TaLib::Function
   # due to the function.
   def call( *r )
     m, n = nil, nil
+
+    # specifies m and n, simulation range in input data.
     case
       when r.size == 0  # no args.
-        puts "no args."
         raise "No setting of param_in_* for #{name}!" if @param_in[0].nil?
         m, n = 0, @param_in[0][:val].size-1
       when r.first.class == Range  # Range is given.
-        puts "range."
         m, n = r.first.first, r.first.last
       when r.size == 2  # 2 indexes are given.
         puts "couple of index."
@@ -503,22 +503,55 @@ class TaLib::TAFunc < TaLib::Function
       else
         raise "Strange args: #{r}! Should be in one of Nothing,"+
               " two indexes, Array or Range."
-
     end
 
-    puts "idx: #{m}, #{n}"
-
+    #puts "idx: #{m}, #{n}"
     case
       when m > n
         raise "calculation range(#{m},#{n}) is currently not supported!"
       when n >= self.param_in_real.size
         raise "#{n} is too big!"+
           " less than or equal to #{self.param_in_real.size-1}"
-      end
+    end
 
     #
-    super( m, n )
+    tmp = super( m, n )
+    ret = param_out_setting
+    ret.merge!( { :start_idx => tmp[0], :num_elements => tmp[1], } )
 
+    #
+    return ret
+
+  end
+
+  # auto prepare output arrays.
+  # ==== Requirements
+  # all in-parameters have already been set.
+  # ==== Args
+  # h :: output hash to be set.
+  # force_mode: :: force to create new array for output (default: false)
+  # ==== Return
+  # h :: .
+  # ==== TODO
+  #
+  #
+  def param_out_setting( h = {}, force_mode: false )
+
+
+    # get output attributes (arrays to prepare).
+    tmp = self.param_attr( :out )
+
+    # prepare arrays and set them.
+    tmp.each{|a|
+      #
+      if force_mode or self.send( a ).nil?
+        then h[a] = Array.new( self.param_in_real.size )
+             self.send( (a.to_s+'=').to_sym, h[a] )
+        else h[a] = self.send( a )  # call getter.
+      end
+    }
+
+    return h
   end
 
   ####
@@ -623,25 +656,6 @@ class TaLib::TAFunc < TaLib::Function
       }
     }
 
-  end
-
-  #
-  # ==== Requirements
-  # all in-parameters have already been set.
-  # ==== Args
-  #
-  # ==== Return
-  #
-  def param_out_setting( h )
-
-    tmp = self.param_attr( :out )
-
-    tmp.each{|a|
-      h[a] = Array.new( self.param_in_real.size )
-      self.send( (a.to_s+'=').to_sym, h[a] )
-    }
-
-    return h
   end
 
 

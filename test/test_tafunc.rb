@@ -11,14 +11,63 @@ class TestTAFunc < Test::Unit::TestCase
     # so DO NOT USE.
     #@test_func = :MACD
     @test_func = :MACDEXT
-    @testee = TaLib::TAFunc.new( @test_func )
+    @testee    = TaLib::TAFunc.new( @test_func )
 
   end
 
   def teardown
   end
 
+  # test for initialize function(tafunc) object.
+  #
+  #
   def test_new
+
+    # inputs.
+    attr_in = @testee.param_attr( :in )
+    assert_equal( [:param_in_real], attr_in )
+    assert_equal( nil, @testee.param_in_real )  # check initial value.
+
+    # options.
+    attr_opt = @testee.param_attr( :opt )
+    assert_equal( [:param_opt_in_fast_period,
+     :param_opt_in_fast_ma_type,
+     :param_opt_in_slow_period,
+     :param_opt_in_slow_ma_type,
+     :param_opt_in_signal_period,
+     :param_opt_in_signal_ma_type], attr_opt )
+
+    # outputs.
+    attr_out = @testee.param_attr( :out )
+    assert_equal( [:param_out_macd,
+                   :param_out_macd_signal,
+                   :param_out_macd_hist], attr_out )
+    assert_equal( nil, @testee.param_out_macd )
+    assert_equal( nil, @testee.param_out_macd_signal )
+    assert_equal( nil, @testee.param_out_macd_hist )
+
+    #
+    tmp = [0.0, 1.0, 2.0]
+    assert_raise(RuntimeError){ @testee.param_in_real( tmp ) }
+
+    #
+    @testee.param_in_real = tmp
+    assert_equal( tmp, @testee.param_in_real )
+
+    ret = @testee.param_out_setting
+    assert_equal( [nil,nil,nil], @testee.param_out_macd )
+    assert_equal( { :param_out_macd        => [nil,nil,nil],
+                    :param_out_macd_signal => [nil,nil,nil],
+                    :param_out_macd_hist   => [nil,nil,nil],
+                  }, ret )
+
+
+  end
+
+  # ==== ATTENTION
+  # Don't use MACD. It has a bug when signal_period = 1.
+  #
+  def test_new_1
 
     #
     assert_nothing_raised { TaLib::TAFunc.new( "MACD" ) }
@@ -295,9 +344,12 @@ class TestTAFunc < Test::Unit::TestCase
 
     h   = {}
     ret = @testee.param_out_setting( h )
-    assert_equal( {:param_out_macd=>[nil, nil, nil],
-                  :param_out_macd_signal=>[nil, nil, nil],
-                   :param_out_macd_hist=>[nil, nil, nil]}, h )
+    assert_equal( { }, h )
+
+    ret = @testee.param_out_setting( h, force_mode: true )
+    assert_equal( { :param_out_macd        =>[nil, nil, nil],
+                    :param_out_macd_signal =>[nil, nil, nil],
+                    :param_out_macd_hist   =>[nil, nil, nil], }, h )
 
   end
 
@@ -372,9 +424,9 @@ class TestTAFunc < Test::Unit::TestCase
 
     #
     tmp = [nil, nil, nil, nil, nil, nil, nil, nil]
-    @testee.param_out_macd = tmp.dup
+    @testee.param_out_macd        = tmp.dup
     @testee.param_out_macd_signal = tmp.dup
-    @testee.param_out_macd_hist = tmp.dup
+    @testee.param_out_macd_hist   = tmp.dup
 
     assert_equal( tmp, @testee.param_out_macd )
 
@@ -383,15 +435,15 @@ class TestTAFunc < Test::Unit::TestCase
     assert_nothing_raised{ ret_call = @testee.call(0, 4) }
     
     # start_idx, num_elements.
-    assert_equal( [ 2, 3 ], ret_call )
+    assert_equal( [2, 3], [ret_call[:start_idx], ret_call[:num_elements]] )
 
     #
     assert_equal( [0.5, 0.5, 0.5],
-                  @testee.param_out_macd[ 0..(ret_call[1]-1)] )
-    assert_equal( [0.5 ],
-                  @testee.param_out_macd_signal[1..1] )
-    assert_equal( [ ],
-                  @testee.param_out_macd_hist[1..0] )
+                  @testee.param_out_macd[ 0..(ret_call[:num_elements]-1)] )
+    assert_equal( @testee.param_out_macd,
+                  @testee.param_out_macd_signal )
+    assert_equal( [0.0, 0.0, 0.0],
+                  @testee.param_out_macd_hist[0..(ret_call[:num_elements]-1)] )
   end
 
   def test_tafunc_macd_1
@@ -429,15 +481,22 @@ class TestTAFunc < Test::Unit::TestCase
       ret_call = @testee.call(run_start_idx, run_end_idx) }
     
     # start_idx, num_elements.
-    assert_equal( [ 2, 5 ], ret_call )
+    assert_equal( { :param_out_macd=>
+                      [0.5, 0.5, 0.5, -0.5, -0.5, nil, nil],
+                    :param_out_macd_signal=>
+                      [0.5, 0.5, 0.5, -0.5, -0.5, nil, nil],
+                    :param_out_macd_hist=>
+                      [0.0, 0.0, 0.0, 0.0, 0.0, nil, nil],
+                    :start_idx    => 2,
+                    :num_elements => 5, }, ret_call )
 
     #
     assert_equal( [0.5, 0.5, 0.5, -0.5, -0.5],
-                 @testee.param_out_macd[ 0..(ret_call[1]-1)] )
+                 @testee.param_out_macd[ 0..(ret_call[:num_elements]-1)] )
     assert_equal( [0.5, 0.5, 0.5, -0.5, -0.5],
-                  @testee.param_out_macd_signal[ 0..(ret_call[1]-1)] )
+                  @testee.param_out_macd_signal[ 0..(ret_call[:num_elements]-1)] )
     assert_equal( [0.0, 0.0, 0.0, 0.0, 0.0 ],
-                 @testee.param_out_macd_hist[ 0..(ret_call[1]-1)] )
+                 @testee.param_out_macd_hist[ 0..(ret_call[:num_elements]-1)] )
 
   end
 

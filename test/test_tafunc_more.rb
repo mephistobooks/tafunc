@@ -39,7 +39,7 @@ class TestTAFuncMore < Test::Unit::TestCase
 
     #
     exp = {
-      :start_idx => 2,
+      :start_idx    => 2,
       :num_elements => 3,
       :param_out_macd        => [ 0.5, 0.5, 0.5, nil, nil],
       :param_out_macd_signal => [ 0.5, 0.5, 0.5, nil, nil],
