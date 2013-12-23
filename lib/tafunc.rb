@@ -286,10 +286,46 @@ class TaLib::TAFunc < TaLib::Function
               (send("param_"+types_dir[ifs_method])[idx].nil?)? nil : \
                 send("param_"+types_dir[ifs_method])[idx][wh]
             }
-            define_singleton_method( PPREFIX+
+            if typ =~ /Price/i
+              then
+              # define param_in_price_hlc= , etc.
+              #
+              #
+                #define_singleton_method( PPREFIX+
+                #     e.param_name.underscore+'=') {|vo,vh,vl,vc,vv,voi|
+                define_singleton_method( PPREFIX+
+                     e.param_name.underscore+'=') {|vv|
+                  #pp vv
+
+                  #
+                  vv.each do |v_e|
+                    if v_e.nil? or v_e==[]
+                      next
+                    elsif v_e.class != Array
+                      then raise "#{__method__} error!"+
+                        " #{v_e.to_s}(#{v_e.class.to_s}) must be array."
+                    end
+                  end if vv.class == Array
+
+                  # in_price,
+                  send( types_dir[ifs_method]+"_"+typ,
+                        idx,
+                        { :open   => vv[0],
+                          :high   => vv[1],
+                          :low    => vv[2],
+                          :close  => vv[3],
+                          :volume => vv[4],
+                          :oi     => vv[5], } )
+                }
+
+              else
+                define_singleton_method( PPREFIX+
                                      e.param_name.underscore+'=') {|v|
-              send( types_dir[ifs_method]+"_"+typ, idx, v )
-            }
+                  send( types_dir[ifs_method]+"_"+typ, idx, v )
+                }
+
+            end
+
           else
             raise "Initialization error #{TaLib.input_types[e.type]} #{e}!"
         end
@@ -504,11 +540,22 @@ class TaLib::TAFunc < TaLib::Function
   ##
   table_for_param.keys.each{|k|
     table_for_param[k].each{|v|
-      define_method( k+"_"+v ) {|idx,val|
-        # attention: val must be lvalue when out_*.
-        eval("__param_#{k}_record( idx, val )")
-        eval("#{k}_#{v}_orig(idx, val)")
-      }
+      if v == 'price'
+        then define_method( k+"_"+v ) {|idx,val|
+               # attention: val must be lvalue when out_*.
+               eval("__param_#{k}_record( idx, val )")
+               eval("#{k}_#{v}_orig(idx,"+
+                    " val[:open], val[:high], val[:low], val[:close],"+
+                    " val[:volume], val[:oi] )")
+             }
+
+        # real or int
+        else define_method( k+"_"+v ) {|idx,val|
+               # attention: val must be lvalue when out_*.
+               eval("__param_#{k}_record( idx, val )")
+               eval("#{k}_#{v}_orig(idx, val)")
+             }
+      end
     }
   }
 
@@ -546,10 +593,26 @@ class TaLib::TAFunc < TaLib::Function
     end
 
     #puts "idx: #{m}, #{n}"
+    param_size = case @param_in[0][:type]
+                   when :TA_Input_Price
+                     [ @param_in[0][:val][:open],
+                       @param_in[0][:val][:high],
+                       @param_in[0][:val][:low],
+                       @param_in[0][:val][:close],
+                     ].map{|e| (e.nil?)? 0 : e.size }.max
+                    when :TA_Input_Real
+                      self.param_in_real.size
+                    when :TA_Input_Integer
+                      raise "Not yet implemented."
+                    else
+                      raise "Strange type for input parameter:"+
+                        " #{@param_in[0][:type]}."
+                    end
+
     case
       when m > n
         raise "calculation range(#{m},#{n}) is currently not supported!"
-      when n >= self.param_in_real.size
+      when n >= param_size
         raise "#{n} is too big!"+
           " less than or equal to #{self.param_in_real.size-1}"
     end
