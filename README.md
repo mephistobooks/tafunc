@@ -40,10 +40,53 @@ end
 
 
 ```
-TaLib::TAFunc.new( :MACDEXT ).param_attr
 TaLib::TAFunc.new( :MACDEXT ).hints
-TaLib::TAFunc.groups
-TaLib::TAFunc.functions
+==== Momentum Indicators ====
+<MACDEXT>
+inputs:
+param_in_real
+
+options:
+param_opt_in_fast_period
+param_opt_in_fast_ma_type
+param_opt_in_slow_period
+param_opt_in_slow_ma_type
+param_opt_in_signal_period
+param_opt_in_signal_ma_type
+
+outputs:
+param_out_macd
+param_out_macd_signal
+param_out_macd_hist
+
+
+=> ["Momentum Indicators"]
+```
+
+```
+>> TaLib::TAFunc.groups
+=> ["Math Operators", "Math Transform", "Overlap Studies", "Volatility Indicators", "Momentum Indicators", "Cycle Indicators", "Volume Indicators", "Pattern Recognition", "Statistic Functions", "Price Transform"]
+>> TaLib::TAFunc.function
+TaLib::TAFunc.function_exists?  TaLib::TAFunc.functions
+TaLib::TAFunc.function_find
+
+>> TaLib::TAFunc.group_of_function( :MA )
+=> "Overlap Studies"
+>> TaLib::TAFunc.new( :MA ).hints
+==== Overlap Studies ====
+<MA>
+inputs:
+param_in_real
+
+options:
+param_opt_in_time_period
+param_opt_in_ma_type
+
+outputs:
+param_out_real
+
+
+=> ["Overlap Studies"]
 ```
 
 See in ``examples`` directory and test code for details.
