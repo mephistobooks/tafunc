@@ -207,26 +207,26 @@ class TestTAFunc < Test::Unit::TestCase
   # test for function_{find,exists?}, group_of_function.
   def test_function_function
     # function_find, exists?.
-    ret = TaLib::Function.function_find( :macd )
-    assert_equal( "MACD", ret )
+    ret = TaLib::Function.function_find( :macdext )
+    assert_equal( "MACDEXT", ret )
 
-    ret = TaLib::Function.function_exists?( :MACD )
+    ret = TaLib::Function.function_exists?( :MACDEXT )
     assert_equal( true, ret )
 
-    ret = TaLib::Function.function_exists?( :macd )
+    ret = TaLib::Function.function_exists?( :macdext )
     assert_equal( true, ret )
 
-    ret = TaLib::Function.function_exists?( "MACD" )
+    ret = TaLib::Function.function_exists?( "MACDEXT" )
     assert_equal( true, ret )
 
-    ret = TaLib::Function.function_exists?( "macd" )
+    ret = TaLib::Function.function_exists?( "macdext" )
     assert_equal( true, ret )
 
-    ret = TaLib::Function.function_exists?( "MACDfooobarrr" )
+    ret = TaLib::Function.function_exists?( "MACDEXTfooobarrr" )
     assert_equal( false, ret )
 
     #
-    ret = TaLib::Function.group_of_function( :MACD )
+    ret = TaLib::Function.group_of_function( :MACDEXT )
     assert_equal( "Momentum Indicators", ret )
 
   end
