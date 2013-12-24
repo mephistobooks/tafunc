@@ -618,8 +618,8 @@ class TaLib::TAFunc < TaLib::Function
     end
 
     #
-    tmp = super( m, n )
     ret = param_out_setting
+    tmp = super( m, n )
     ret.merge!( { :start_idx => tmp[0], :num_elements => tmp[1], } )
 
     #
@@ -641,8 +641,9 @@ class TaLib::TAFunc < TaLib::Function
   #
   def param_out_setting( h = {}, force_mode: false )
 
-
     # get output attributes (arrays to prepare).
+    # ex. param_out_macd, param_out_macd_signal, param_out_macd_hist
+    #
     tmp = self.param_attr( :out )
 
     # prepare arrays and set them.

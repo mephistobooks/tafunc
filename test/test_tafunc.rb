@@ -363,10 +363,11 @@ class TestTAFunc < Test::Unit::TestCase
     #
     tmp = [ 1.0, 2.0, 3.0, 4.0, 5.0 ]
     @testee.param_in_real = tmp
-    #@testee.param_opt_in_fast_period = 3
     assert_equal( tmp, @testee.param_in_real )
-    e = assert_raise( RuntimeError ){ @testee.call }
-    assert_equal( 0, e.message =~ /unsuccess return code TA_CallFunc/ )
+    ret = nil
+    e = assert_nothing_raised{ ret = @testee.call }
+    assert_equal( nil, e )
+    assert_equal( 0, ret[:num_elements] )
 
     #
     @testee.param_out_macd        = Array.new(@testee.param_in_real.size)
