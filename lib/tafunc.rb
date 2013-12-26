@@ -620,7 +620,8 @@ class TaLib::TAFunc < TaLib::Function
     #
     ret = param_out_setting
     tmp = super( m, n )
-    ret.merge!( { :start_idx => tmp[0], :num_elements => tmp[1], } )
+    #ret.merge!( { :start_idx => tmp[0], :num_elements => tmp[1], } )
+    ret =  { :start_idx => tmp[0], :num_elements => tmp[1], }.merge!(ret)
 
     #
     return ret
